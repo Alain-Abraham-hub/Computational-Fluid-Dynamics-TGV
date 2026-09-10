@@ -20,7 +20,7 @@ Supported Operators
   advection_4     : 4th-order upwind-biased advection term (u . grad)f
 
 Stencil Coefficients (4th-order central)
------------------------------------------
+-----------------------------------------s
   First derivative:
     f'_i = (-f_{i+2} + 8*f_{i+1} - 8*f_{i-1} + f_{i-2}) / (12 * dx)
     Truncation error: O(dx^4)
