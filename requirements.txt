@@ -1,0 +1,11 @@
+# Core Math & Data
+numpy>=1.26.0
+scipy>=1.14.0
+
+# Quantum Computing (Qiskit 1.0+ compatible)
+qiskit>=1.0.0
+qiskit-ibm-runtime>=0.40.0
+qiskit-algorithms>=0.3.0
+
+# Visualization
+matplotlib>=3.8.0
