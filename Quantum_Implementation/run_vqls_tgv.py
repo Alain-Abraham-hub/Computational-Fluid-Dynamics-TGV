@@ -214,7 +214,7 @@ def main():
     # 8. Visualization (Evolution across Time Steps)
     # ============================================================
     try:
-        import matplotlib.pyplot as plt
+        import matplotlib.pyplot as plt  # type: ignore[reportMissingModuleSource]
         print("\nGenerating time-evolution visualization...")
         
         x_coords = np.linspace(0, L, nx, endpoint=False)
