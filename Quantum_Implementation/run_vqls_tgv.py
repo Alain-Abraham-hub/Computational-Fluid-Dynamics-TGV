@@ -58,8 +58,8 @@ def main():
     nx, ny = 4, 4
     L = 2 * np.pi
     nu = 0.1
-    dt = 0.1
-    num_steps = 4
+    dt = 0.04
+    num_steps = 25
 
     # ============================================================
     # 2. Configuration & Secure Credentials (via Environment Variable)
@@ -221,24 +221,29 @@ def main():
         y_coords = np.linspace(0, L, ny, endpoint=False)
         X, Y = np.meshgrid(x_coords, y_coords)
         
-        num_plots = len(time_history)
+        # Select representative snapshots for the evolution plot (up to 5 frames)
+        if len(time_history) > 6:
+            plot_indices = list(np.linspace(0, len(time_history) - 1, 5, dtype=int))
+        else:
+            plot_indices = list(range(len(time_history)))
+        num_subplots = len(plot_indices)
         
         # --- Plot 1: Flow Evolution (Row of Subplots) ---
-        fig, axes = plt.subplots(1, num_plots, figsize=(4 * num_plots, 4))
+        fig, axes = plt.subplots(1, num_subplots, figsize=(4 * num_subplots, 4))
         fig.suptitle("Quantum-Classical TGV Flow Evolution", fontsize=16)
         
         # Find global max kinetic energy for consistent color scale
         max_ke = 0.5 * np.max(u_history[0]**2 + v_history[0]**2)
         
-        for i in range(num_plots):
-            ax = axes[i] if num_plots > 1 else axes
-            U = u_history[i].reshape((ny, nx))
-            V = v_history[i].reshape((ny, nx))
+        for idx, step_idx in enumerate(plot_indices):
+            ax = axes[idx] if num_subplots > 1 else axes
+            U = u_history[step_idx].reshape((ny, nx))
+            V = v_history[step_idx].reshape((ny, nx))
             KE_field = 0.5 * (U**2 + V**2)
             
             contour = ax.contourf(X, Y, KE_field, levels=20, cmap='viridis', alpha=0.9, vmin=0.0, vmax=max_ke)
             ax.quiver(X, Y, U, V, color='white', pivot='mid', scale=4.0)
-            ax.set_title(f"t = {time_history[i]:.4f}s")
+            ax.set_title(f"t = {time_history[step_idx]:.4f}s")
             ax.set_xlim(-0.5, L + 0.5)
             ax.set_ylim(-0.5, L + 0.5)
             ax.set_xticks([])
