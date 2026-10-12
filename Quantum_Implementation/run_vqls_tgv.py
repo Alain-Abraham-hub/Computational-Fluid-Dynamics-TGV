@@ -5,6 +5,7 @@ import scipy.sparse as sp
 import scipy.sparse.linalg as spla
 from src.carleman_fvm import CarlemanFVM
 from src.pauli_decomposition import decompose_to_paulis, pad_vector_to_power_of_2
+from src.vtk_export import export_tgv_to_vtk, write_pvd_collection
 
 try:
     from qiskit.circuit.library import real_amplitudes
@@ -147,6 +148,10 @@ def main():
     u_history = [u_n.copy()]
     v_history = [v_n.copy()]
     
+    # Export initial state (t = 0.0s) for ParaView
+    paraview_dir = os.path.join(os.path.dirname(__file__), "paraview_output")
+    export_tgv_to_vtk(paraview_dir, 0, 0.0, u_n, v_n, nx, ny, L)
+    
     for step in range(num_steps):
         print(f"\n=== Time Step {step+1}/{num_steps}  (t = {(step+1)*dt:.4f}s) ===")
 
@@ -193,6 +198,13 @@ def main():
         ke_history.append(0.5 * np.mean(u_next**2 + v_next**2))
         u_history.append(u_next.copy())
         v_history.append(v_next.copy())
+
+        # Export current step to ParaView VTK file
+        export_tgv_to_vtk(paraview_dir, step + 1, (step + 1) * dt, u_next, v_next, nx, ny, L, p=p_next)
+
+    # Write master ParaView collection (.pvd)
+    pvd_file = write_pvd_collection(paraview_dir, time_history, "tgv_series.pvd")
+    print(f"\n[*] ParaView series successfully exported to: {pvd_file}")
 
     # ============================================================
     # 7. Final Output
