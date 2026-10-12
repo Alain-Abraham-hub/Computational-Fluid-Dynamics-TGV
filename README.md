@@ -15,8 +15,11 @@ A benchmark and exploratory framework solving the **2D Taylor-Green Vortex (TGV)
 - [How to Run](#how-to-run)
   - [Running the Classical Benchmark](#running-the-classical-benchmark)
   - [Running the Quantum-Classical Simulation](#running-the-quantum-classical-simulation)
+- [ParaView Visualization & Animation Pipeline](#paraview-visualization--animation-pipeline)
+  - [1. How the VTK Export Works](#1-how-the-vtk-export-works)
+  - [2. Step-by-Step ParaView Guide](#2-step-by-step-paraview-guide)
+  - [3. Exporting Animations & Generating GIFs](#3-exporting-animations--generating-gifs)
 - [Current State & NISQ Considerations](#current-state--nisq-considerations)
-- [License & Acknowledgments](#license--acknowledgments)
 
 ---
 
@@ -121,6 +124,7 @@ Computational-Fluid-Dynamics-TGV/
 ### Prerequisites
 - Python 3.10+ (tested with Python 3.11/3.14)
 - Git
+- [ParaView](https://www.paraview.org/download/) (for interactive 2D/3D CFD visualization)
 
 ### 1. Clone the Repository
 ```bash
@@ -139,6 +143,12 @@ source cfdtgv/bin/activate
 pip install -r requirements.txt
 ```
 
+### 4. Install ParaView (macOS)
+```bash
+brew install --cask paraview
+```
+*(Or download the official installer for your platform from [paraview.org/download](https://www.paraview.org/download/)).*
+
 ---
 
 ## How to Run
@@ -150,10 +160,10 @@ cd Classical_Baseline
 python run_benchmark.py
 ```
 You will be prompted to choose:
-- Reynolds number (e.g. `Re = 100`)
+- Reynolds number (e.g. `Re = 10` or `Re = 100`)
 - Grid resolution (e.g. `N = 64` or `N = 128`)
 
-Plots and diagnostic metrics are saved into `Classical_Baseline/results/`.
+Diagnostic plots are saved into `Classical_Baseline/results/`, and VTK time-series snapshots (`classical_tgv_000.vtk` ... `classical_tgv_025.vtk`) are automatically exported to `Para View Visualization/Classical vtk files/`.
 
 ---
 
@@ -165,7 +175,7 @@ cd Quantum_Implementation
 ```
 
 #### Option A: Local Execution (Simulator Mode)
-Runs the hybrid simulation locally without contacting IBM Quantum cloud services:
+Runs the 25-step hybrid simulation ($t = 0.0\text{s}$ to $t = 1.0\text{s}$, $\Delta t = 0.04\text{s}$) locally without contacting IBM Quantum cloud services:
 ```bash
 USE_REAL_HARDWARE=false python run_vqls_tgv.py
 ```
@@ -183,8 +193,75 @@ The solver will automatically authenticate, identify the least-busy quantum back
 
 #### Output Visualizations
 Each run generates:
-- `tgv_evolution.png`: Multi-panel visualization showing velocity vector field snapshots across each simulated time step.
-- `tgv_ke_decay.png`: Total kinetic energy decay curve verifying viscous dissipation.
+- `tgv_evolution.png`: Multi-panel visualization showing velocity vector field snapshots across milestone time steps.
+- `tgv_ke_decay.png`: Total kinetic energy decay curve across all 25 time steps verifying viscous dissipation.
+- `Para View Visualization/Quantum vtk files/tgv_step_000.vtk ... tgv_step_025.vtk`: Full VTK time series for ParaView.
+
+---
+
+## ParaView Visualization & Animation Pipeline
+
+![ParaView TGV Decay Animation](Para%20View%20Visualization/tgv_decay_animation.gif)
+
+Both solvers include a zero-dependency native VTK exporter (`vtk_export.py`) that writes standard **VTK Legacy ASCII (`DATASET STRUCTURED_POINTS`)** snapshots across all 26 frames ($t = 0.00\text{s}$ to $t = 1.00\text{s}$).
+
+### 1. How the VTK Export Works
+At every recorded time step, the exporter maps the 2D uniform mesh onto a 3D structured point grid ($z = 0$) and writes the following point data arrays:
+
+| Field Name | Type | Description |
+| :--- | :--- | :--- |
+| **`velocity`** | 3-Vector $(u, v, 0)$ | Vortex-frame velocity vectors showing the 4 counter-rotating whirlpools. |
+| **`velocity_convecting`** | 3-Vector $(u, v, 0)$ | Full lab-frame velocity including mean convection $(U_c, V_c)$ *(Classical)*. |
+| **`kinetic_energy`** | Scalar | Local fluid kinetic energy $E_k = \frac{1}{2}(u^2 + v^2)$. |
+| **`vorticity`** | Scalar | Out-of-plane curl $\omega_z = \frac{\partial v}{\partial x} - \frac{\partial u}{\partial y}$ isolating vortex cores *(Classical)*. |
+| **`pressure`** | Scalar | Pressure field $p(x, y, t)$ obtained from the Poisson equation. |
+
+* **Why Compare Both Grids in ParaView?**
+  * **Quantum ($4 \times 4$ Grid):** Discretizes the domain into 16 points to fit within an **11-qubit** Carleman-linearized circuit ($1056 \times 1056$ padded to $2048 \times 2048$). Because the 16 points sample peaks and zeros in a checkerboard pattern, ParaView's triangle renderer displays diagonal energy bands that decay exponentially over time.
+  * **Classical ($64 \times 64$ Grid):** Resolves the domain across 4,096 points using 4th-order finite differences, revealing crisp circular vortex cores, smooth streamlines, and low-pressure vortex centers.
+
+---
+
+### 2. Step-by-Step ParaView Guide
+
+#### Loading the Time Series
+1. Open **ParaView** and go to **`File` $\rightarrow$ `Open...`**
+2. Navigate to **`Para View Visualization/`**:
+   * For High-Res Classical ($64 \times 64$): Open `Classical vtk files/` and select the grouped **`classical_tgv_..vtk`**.
+   * For Quantum ($4 \times 4$): Open `Quantum vtk files/` and select the grouped **`tgv_step_..vtk`**.
+3. Click **`OK`**, then click the blue **`Apply`** button in the **Properties** panel.
+   *(Tip: If you ever close the sidebars accidentally, restore them via top menu **`View` $\rightarrow$ `Pipeline Browser`** and **`View` $\rightarrow$ `Properties`**).*
+
+#### Configuring the Heatmap Surface
+1. In the **Properties** panel (or top toolbar), set **Representation** to **`Surface`** (or **`Slice`**).
+2. Under **Coloring**, select **`kinetic_energy`**, **`vorticity`**, or **`pressure`**.
+3. If the viewport looks empty, click the **Reset Camera / Zoom to Data** button (or `-Z`) in the top toolbar.
+
+#### Adding Velocity Vector Arrows (`Glyph` Filter)
+1. Highlight your `.vtk` series in the **Pipeline Browser**.
+2. In the top menu bar, click **`Filters` $\rightarrow$ `Alphabetical` $\rightarrow$ `Glyph`**.
+3. In the **Properties** panel for `Glyph1`, configure:
+   * **Glyph Type:** `Arrow`
+   * **Orientation Array:** `velocity`
+   * **Scale Array:** `velocity`
+   * **Scale Factor:** `0.4`
+   * **Glyph Mode (under Masking):**
+     * For the **$4 \times 4$ Quantum grid**: Choose **`All Points`** *(default "Volume Sampling" will show 0 arrows on a 2D flat sheet)*.
+     * For the **$64 \times 64$ Classical grid**: Choose **`Every Nth Point`** with **Stride = `4`** so arrows are cleanly spaced.
+4. Click **`Apply`**.
+5. In the **Pipeline Browser**, click the **eyeball icon (`👁`)** next to your base `.vtk` dataset so **both** the colored heatmap and the vector arrows are visible together.
+6. Press the **`▶ Play`** button in the top toolbar to animate the vortex decay across all 26 frames!
+
+---
+
+### 3. Exporting Animations & Generating GIFs
+1. In ParaView, click **`File` $\rightarrow$ `Save Animation...`**
+2. Set **`Files of type`** to **`PNG images (*.png)`** and save into `Para View Visualization/TGV decay png's/`.
+3. Stitch the exported frames into a universal looping `.gif` using [`make_gif.py`](Quantum_Implementation/make_gif.py):
+   ```bash
+   python Quantum_Implementation/make_gif.py
+   ```
+   This outputs **`Para View Visualization/tgv_decay_animation.gif`**, ready for presentations, posters, and web browsers.
 
 ---
 
