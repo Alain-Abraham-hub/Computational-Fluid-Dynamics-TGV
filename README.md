@@ -96,12 +96,20 @@ Computational-Fluid-Dynamics-TGV/
 │   ├── solver_fd.py              # Finite-difference Navier-Stokes solver
 │   ├── exact_solution.py         # Analytical Taylor-Green solution
 │   ├── metrics.py                # Runtime, error, and energy trackers
-│   └── visualize.py              # Classical plotting utilities
+│   ├── visualize.py              # Classical plotting utilities
+│   └── vtk_export.py             # VTK exporter for classical flow fields
 ├── Quantum_Implementation/       # Hybrid QCFD implementation
 │   ├── run_vqls_tgv.py           # Main hybrid time-stepping simulation
+│   ├── make_gif.py               # Stitches ParaView PNG frames into GIF
 │   └── src/
 │       ├── carleman_fvm.py       # FVM advection/diffusion & Carleman builder
-│       └── pauli_decomposition.py# Matrix padding and SparsePauliOp decomposition
+│       ├── pauli_decomposition.py# Matrix padding and SparsePauliOp decomposition
+│       └── vtk_export.py         # VTK exporter for quantum flow fields
+├── Para View Visualization/      # ParaView VTK series, PNG frames & GIF
+│   ├── Classical vtk files/      # 64x64 classical VTK time series
+│   ├── Quantum vtk files/        # 4x4 quantum VTK time series
+│   ├── TGV decay png's/          # Exported ParaView animation frames
+│   └── tgv_decay_animation.gif   # Animated GIF of TGV decay
 ├── requirements.txt              # Python dependencies
 └── README.md
 ```

@@ -149,7 +149,9 @@ def main():
     v_history = [v_n.copy()]
     
     # Export initial state (t = 0.0s) for ParaView
-    paraview_dir = os.path.join(os.path.dirname(__file__), "paraview_output")
+    paraview_dir = os.path.abspath(
+        os.path.join(os.path.dirname(__file__), "..", "Para View Visualization", "Quantum vtk files")
+    )
     export_tgv_to_vtk(paraview_dir, 0, 0.0, u_n, v_n, nx, ny, L)
     
     for step in range(num_steps):

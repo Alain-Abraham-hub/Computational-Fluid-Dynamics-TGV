@@ -12,9 +12,9 @@ What This Script Does
 """
 
 import os
-import matplotlib
+import matplotlib # type: ignore
 matplotlib.use("Agg")  # headless backend — no display required
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt # type: ignore
 
 from exact_solution import TGVParameters, ExactSolution, make_grid
 from solver_fd      import NavierStokesFDSolver, SolverConfig
@@ -54,10 +54,14 @@ def run_single_simulation(Re: float, N: int, t_end: float = 1.0):
     print(f"Running Simulation: Re = {Re}, N = {N}, t_end = {t_end}")
     print("=" * 60)
 
+    paraview_dir = os.path.abspath(
+        os.path.join(os.path.dirname(__file__), "..", "Para View Visualization", "Classical vtk files")
+    )
     params = TGVParameters(Re=Re)
     config = SolverConfig(
         N=N, t_end=t_end, CFL=0.4, dt_max=5e-3,
-        record_every=50, verbose=True
+        record_every=8, verbose=True,
+        vtk_output_dir=paraview_dir
     )
 
     timer = RuntimeTracker()

@@ -40,6 +40,7 @@ from fd_operators import (
     divergence_4,
     solve_poisson_fft,
 )
+from vtk_export import export_classical_to_vtk, write_classical_pvd
 
 
 # ---------------------------------------------------------------------------
@@ -67,14 +68,17 @@ class SolverConfig:
         Record diagnostics every this many timesteps.
     verbose : bool
         Print progress during simulation.
+    vtk_output_dir : str, optional
+        If non-empty, export VTK files and a .pvd series to this directory.
     """
-    N          : int   = 64
-    t_end      : float = 1.0
-    CFL        : float = 0.5
-    dt_max     : float = 1e-2
-    dt_fixed   : float = 0.0      # set > 0 to use fixed timestep
-    record_every: int  = 10
-    verbose    : bool  = True
+    N             : int   = 64
+    t_end         : float = 1.0
+    CFL           : float = 0.5
+    dt_max        : float = 1e-2
+    dt_fixed      : float = 0.0      # set > 0 to use fixed timestep
+    record_every  : int   = 10
+    verbose       : bool  = True
+    vtk_output_dir: str   = ""
 
 
 # ---------------------------------------------------------------------------
@@ -273,6 +277,23 @@ class NavierStokesFDSolver:
         diag.dt_history.append(dt)
         diag.wall_clock.append(wall_t)
 
+        if self.config.vtk_output_dir:
+            frame_idx = len(diag.times) - 1
+            vorticity = ddx_4(self.v, self.dx) - ddy_4(self.u, self.dy)
+            export_classical_to_vtk(
+                output_dir=self.config.vtk_output_dir,
+                frame_idx=frame_idx,
+                time_val=t,
+                u=self.u,
+                v=self.v,
+                p=self.p,
+                dx=self.dx,
+                dy=self.dy,
+                Uc=self.params.Uc,
+                Vc=self.params.Vc,
+                vorticity=vorticity,
+            )
+
     def _advance_one_step(self):
         """Advance the solution by one timestep using fractional-step projection."""
         nu = self.params.nu
@@ -336,6 +357,11 @@ class NavierStokesFDSolver:
                         f"{d.kinetic_energy_sim[-1]:>12.6f}  "
                         f"{d.divergence_max[-1]:>12.3e}"
                     )
+
+        if cfg.vtk_output_dir:
+            pvd_file = write_classical_pvd(cfg.vtk_output_dir, self.diag.times)
+            if cfg.verbose:
+                print(f"\n[*] ParaView series exported to: {pvd_file} ({len(self.diag.times)} frames)")
 
         total_time = time.perf_counter() - self._t_wall_start
         if cfg.verbose:
