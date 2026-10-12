@@ -7,7 +7,7 @@ Stitches exported ParaView PNG animation frames into a looping GIF inside 'Para 
 import glob
 import os
 import sys
-from PIL import Image
+from PIL import Image # type: ignore
 
 
 def create_gif(
